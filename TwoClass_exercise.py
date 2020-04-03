@@ -33,14 +33,14 @@ def perimeter_differences(input_path, img_list_class):
     for img in img_list_class:
         current_img_path = os.path.join(input_path, img)
         current_img = cv2.imread(current_img_path)
-        imgray = cv2.cvtColor(current_img, cv2.COLOR_BGR2GRAY)
-        ret, thresh = cv2.threshold(imgray, 127, 255, 0)
-        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        cnt = contours[0]
-
-        # edges = cv2.Canny(current_img, 100, 200)
-        # contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        # imgray = cv2.cvtColor(current_img, cv2.COLOR_BGR2GRAY)
+        # ret, thresh = cv2.threshold(imgray, 127, 255, 0)
+        # contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         # cnt = contours[0]
+
+        edges = cv2.Canny(current_img, 100, 200)
+        contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        cnt = contours[0]
         current_img_perimeter = np.round(cv2.arcLength(cnt, True), 2)
         img_perimeter_list.append([img, current_img_perimeter])
 
@@ -59,10 +59,10 @@ def histogram_plotter(img_mean_list_class1_values, img_mean_list_class2_values):
     plt.title("134 crops each class")
     plt.hist(img_mean_list_class1_values, bins=10, range=(np.min(img_mean_list_class1_values),
                                                           np.max(img_mean_list_class1_values)),
-             label='Control', alpha=0.7)
+             label='Neurites', alpha=0.7)
     plt.hist(img_mean_list_class2_values, bins=10, range=(np.min(img_mean_list_class2_values),
                                                           np.max(img_mean_list_class2_values)),
-             label='ALS', alpha=0.7)
+             label='Somas', alpha=0.7)
     plt.legend(loc='upper right')
     plt.show()
 
@@ -111,10 +111,10 @@ def main():
 
 if __name__ == '__main__':
     input_path = \
-        {'Control': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SingleTp_N_CTR_1',
-         'ALS': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SingleTp_N_ALS_1'}
+        {'Neurites': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SingleTp_N_CTR_1',
+         'Somas': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SingleTp_S_CTR_1'}
     # '/home/sinadabiri/Dropbox (Gladstone)/Feature_based_classification/ten_crops'
 
-    class_list = ['Control', 'ALS']
+    class_list = ['Neurites', 'Somas']
 
     main()

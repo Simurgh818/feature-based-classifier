@@ -22,9 +22,9 @@ def main():
     plt.figure("img Canny edge detection")
     plt.imshow(edges, cmap='gray')
 
-    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     plt.figure("img contours drawn")
-    plt.imshow(cv2.drawContours(current_img, contours, -1, (0, 255, 0), 3))
+    plt.imshow(cv2.drawContours(current_img, contours, -1, (0, 0, 255), 1))
 
     contours_mom, hierarchy_mom = cv2.findContours(thresh, 1, 2)
     # plt.imshow(cv2.drawContours(current_img, contours_mom, -1, (0,255,0), 3))
@@ -34,7 +34,7 @@ def main():
     print(cnt)
     print(M)
     plt.figure("img contour moments drawn")
-    plt.imshow(cv2.drawContours(current_img, cnt, -1, (0, 255, 0), thickness=3))
+    plt.imshow(cv2.drawContours(current_img, cnt, -1, (0, 0, 255), thickness=1))
 
     cx = int(M['m10'] / M['m00'])
     cy = int(M['m01'] / M['m00'])
