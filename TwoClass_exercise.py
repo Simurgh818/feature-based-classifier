@@ -1,5 +1,6 @@
 import os
 import cv2
+import math
 import pandas
 import numpy as np
 from matplotlib import pyplot as plt
@@ -49,19 +50,26 @@ def perimeter_differences(input_path, img_list_class):
     return img_perimeter_list_class_values
 
 
-def histogram_plotter(img_mean_list_class1_values, img_mean_list_class2_values):
+def histogram_plotter(img_mean_list_class1_values, img_mean_list_class2_values, title):
     """
 
     :param img_mean_list_class1_values: The mean pixel intensity per image of each crop in class 1.
     :param img_mean_list_class2_values: The mean pixel intensity per image of each crop in class 2.
     :return: Histogram plot showing the two classes.
     """
+    plt.figure(title)
     plt.title("134 crops each class")
-    plt.hist(img_mean_list_class1_values, bins=10, range=(np.min(img_mean_list_class1_values),
-                                                          np.max(img_mean_list_class1_values)),
+    bins_class1 = np.linspace(math.ceil(min(img_mean_list_class1_values)),
+                              math.floor(max(img_mean_list_class1_values)),
+                              10)
+    plt.hist(img_mean_list_class1_values, bins=bins_class1, range=(np.min(img_mean_list_class1_values),
+                                                                   np.max(img_mean_list_class1_values)),
              label='Neurites', alpha=0.7)
-    plt.hist(img_mean_list_class2_values, bins=10, range=(np.min(img_mean_list_class2_values),
-                                                          np.max(img_mean_list_class2_values)),
+    bins_class2 = np.linspace(math.ceil(min(img_mean_list_class2_values)),
+                              math.floor(max(img_mean_list_class2_values)),
+                              10)
+    plt.hist(img_mean_list_class2_values, bins=bins_class2, range=(np.min(img_mean_list_class2_values),
+                                                                   np.max(img_mean_list_class2_values)),
              label='Somas', alpha=0.7)
     plt.legend(loc='upper right')
     plt.show()
@@ -103,10 +111,10 @@ def main():
     print('The Class perimeter dictionary is: ', img_perimeter_list_class_values, '\n')
 
     histogram_plotter(img_mean_list_class_values[class_list[0]],
-                      img_mean_list_class_values[class_list[1]])
+                      img_mean_list_class_values[class_list[1]], 'mean differences')
 
     histogram_plotter(img_perimeter_list_class_values[class_list[0]],
-                      img_perimeter_list_class_values[class_list[1]])
+                      img_perimeter_list_class_values[class_list[1]], 'perimeter differences')
 
 
 if __name__ == '__main__':
