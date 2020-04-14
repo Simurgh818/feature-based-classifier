@@ -58,7 +58,7 @@ def fft_hpf_differences(input_path, img_list_class):
         current_img = cv2.imread(current_img_path, 0)
         row, col = current_img.shape
         centerRow, centerCol = int(row/2), int(col/2)
-        centerRectangle = 10
+        centerRectangle = 7
         dft = cv2.dft(np.float32(current_img), flags=cv2.DFT_COMPLEX_OUTPUT)
         dft_shift = np.fft.fftshift(dft)
         # High pass filtering: blocking a square in the middle
@@ -85,7 +85,7 @@ def fft_power_differences(input_path, img_list_class):
         current_img = cv2.imread(current_img_path, 0)
         row, col = current_img.shape
         centerRow, centerCol = int(row/2), int(col/2)
-        centerRectangle = 10
+        centerRectangle = 7
         dft = cv2.dft(np.float32(current_img), flags=cv2.DFT_COMPLEX_OUTPUT)
         dft_shift = np.fft.fftshift(dft)
         # imgMagnitude = 20*np.log(cv2.magnitude(dft_shift[:,:,0], dft_shift[:,:,1]))
@@ -124,13 +124,13 @@ def histogram_plotter(img_mean_list_class1_values, img_mean_list_class2_values, 
                               10)
     plt.hist(img_mean_list_class1_values, bins=bins_class1, range=(np.min(img_mean_list_class1_values),
                                                                    np.max(img_mean_list_class1_values)),
-             label='Neurites', alpha=0.7)
+             label='Control', alpha=0.7)
     bins_class2 = np.linspace(math.ceil(min(img_mean_list_class2_values)),
                               math.floor(max(img_mean_list_class2_values)),
                               10)
     plt.hist(img_mean_list_class2_values, bins=bins_class2, range=(np.min(img_mean_list_class2_values),
                                                                    np.max(img_mean_list_class2_values)),
-             label='Somas', alpha=0.7)
+             label='ALS', alpha=0.7)
     plt.legend(loc='upper right')
     plt.show()
 
@@ -184,10 +184,10 @@ def main():
 
 if __name__ == '__main__':
     input_path = \
-        {'Neurites': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SingleTp_N_CTR_1',
-         'Somas': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SingleTp_S_CTR_1'}
+        {'Control': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SingleTp_N_CTR_1',
+         'ALS': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SIngleTp_N_ALS_1'}
     # '/home/sinadabiri/Dropbox (Gladstone)/Feature_based_classification/ten_crops'
 
-    class_list = ['Neurites', 'Somas']
+    class_list = ['Control', 'ALS']
 
     main()
