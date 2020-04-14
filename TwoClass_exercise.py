@@ -77,6 +77,38 @@ def fft_hpf_differences(input_path, img_list_class):
     return img_fft_hpf_list_class_values
 
 
+def fft_power_differences(input_path, img_list_class):
+
+    img_fft_power_list = []
+    for img in img_list_class:
+        current_img_path = os.path.join(input_path, img)
+        current_img = cv2.imread(current_img_path, 0)
+        row, col = current_img.shape
+        centerRow, centerCol = int(row/2), int(col/2)
+        centerRectangle = 10
+        dft = cv2.dft(np.float32(current_img), flags=cv2.DFT_COMPLEX_OUTPUT)
+        dft_shift = np.fft.fftshift(dft)
+        # imgMagnitude = 20*np.log(cv2.magnitude(dft_shift[:,:,0], dft_shift[:,:,1]))
+        # power = imgMagnitude**2
+        # median_pow = np.median(power.ravel())
+
+        # High pass filtering: blocking a square in the middle
+        dft_shift[centerRow - centerRectangle: centerRow + centerRectangle,
+        centerCol - centerRectangle: centerCol + centerRectangle] = 0
+        # Going back: inverse fft
+        dft_ifft = np.fft.ifftshift(dft_shift)
+
+        img_back = cv2.idft(dft_ifft)
+        img_back = (cv2.magnitude(img_back[:, :, 0], img_back[:, :, 1]))**2
+        median_img_back = np.median(img_back.ravel())
+        img_fft_power_list.append([img, median_img_back])
+
+    print('The images and their median pix after fft hpf are: ', img_fft_power_list, '\n')
+    img_fft_power_list_class_values = [i[1] for i in img_fft_power_list]
+
+    return img_fft_power_list_class_values
+
+
 def histogram_plotter(img_mean_list_class1_values, img_mean_list_class2_values, title):
     """
 
@@ -121,8 +153,9 @@ def csv_file_updater(input_path, img_list, img_mean_list):
 
 def main():
     img_mean_list_class_values = {}
-    img_perimeter_list_class_values = {}
+    # img_perimeter_list_class_values = {}
     img_fft_hpf_list_class_values = {}
+    img_fft_power_list_class_values = {}
 
     for cl in class_list:
         # print("img_list is: ", img_list, '\n')
@@ -132,21 +165,21 @@ def main():
         # print("img_list_class: ", img_list_class)
         # img_mean_list_class_values[cl] = mean_pix_intensity(input_path[cl], img_list)
         # csv_file_updater(input_path[cl], img_list, img_mean_list_class_values[cl])
-
-        img_perimeter_list_class_values[cl] = perimeter_differences(input_path[cl], img_list)
+        # img_perimeter_list_class_values[cl] = perimeter_differences(input_path[cl], img_list)
 
         img_fft_hpf_list_class_values[cl] = fft_hpf_differences(input_path[cl], img_list)
+        img_fft_power_list_class_values[cl] = fft_power_differences(input_path[cl], img_list)
 
     # TODO: csv file is not getting both classes, it overwrites
     # print('The Class mean dictionary is: ', img_mean_list_class_values, '\n')
     # print('The Class perimeter dictionary is: ', img_perimeter_list_class_values, '\n')
-    print('The Class fft hpf dictionary is: ', img_fft_hpf_list_class_values, '\n')
+    # print('The Class fft hpf dictionary is: ', img_fft_hpf_list_class_values, '\n')
 
     histogram_plotter(img_fft_hpf_list_class_values[class_list[0]],
                       img_fft_hpf_list_class_values[class_list[1]], 'fft hpf differences')
 
-    histogram_plotter(img_perimeter_list_class_values[class_list[0]],
-                      img_perimeter_list_class_values[class_list[1]], 'perimeter differences')
+    histogram_plotter(img_fft_power_list_class_values[class_list[0]],
+                      img_fft_power_list_class_values[class_list[1]], 'fft hpf power differences')
 
 
 if __name__ == '__main__':
