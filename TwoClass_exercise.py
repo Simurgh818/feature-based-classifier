@@ -121,16 +121,16 @@ def histogram_plotter(img_mean_list_class1_values, img_mean_list_class2_values, 
     plt.title("134 crops each class")
     bins_class1 = np.linspace(math.ceil(min(img_mean_list_class1_values)),
                               math.floor(max(img_mean_list_class1_values)),
-                              10)
+                              30)
     plt.hist(img_mean_list_class1_values, bins=bins_class1, range=(np.min(img_mean_list_class1_values),
                                                                    np.max(img_mean_list_class1_values)),
-             label='Control', alpha=0.7)
+             label='Neurites', alpha=0.7)
     bins_class2 = np.linspace(math.ceil(min(img_mean_list_class2_values)),
                               math.floor(max(img_mean_list_class2_values)),
-                              10)
+                              30)
     plt.hist(img_mean_list_class2_values, bins=bins_class2, range=(np.min(img_mean_list_class2_values),
                                                                    np.max(img_mean_list_class2_values)),
-             label='ALS', alpha=0.7)
+             label='Soma', alpha=0.7)
     plt.legend(loc='upper right')
     plt.show()
 
@@ -153,7 +153,7 @@ def csv_file_updater(input_path, img_list, img_mean_list):
 
 def main():
     img_mean_list_class_values = {}
-    # img_perimeter_list_class_values = {}
+    img_perimeter_list_class_values = {}
     img_fft_hpf_list_class_values = {}
     img_fft_power_list_class_values = {}
 
@@ -163,9 +163,9 @@ def main():
         img_list = os.listdir(input_path[cl])
         # img_list_class = [fn for fn in img_list if cl in fn]
         # print("img_list_class: ", img_list_class)
-        # img_mean_list_class_values[cl] = mean_pix_intensity(input_path[cl], img_list)
+        img_mean_list_class_values[cl] = mean_pix_intensity(input_path[cl], img_list)
         # csv_file_updater(input_path[cl], img_list, img_mean_list_class_values[cl])
-        # img_perimeter_list_class_values[cl] = perimeter_differences(input_path[cl], img_list)
+        img_perimeter_list_class_values[cl] = perimeter_differences(input_path[cl], img_list)
 
         img_fft_hpf_list_class_values[cl] = fft_hpf_differences(input_path[cl], img_list)
         img_fft_power_list_class_values[cl] = fft_power_differences(input_path[cl], img_list)
@@ -174,6 +174,11 @@ def main():
     # print('The Class mean dictionary is: ', img_mean_list_class_values, '\n')
     # print('The Class perimeter dictionary is: ', img_perimeter_list_class_values, '\n')
     # print('The Class fft hpf dictionary is: ', img_fft_hpf_list_class_values, '\n')
+    histogram_plotter(img_mean_list_class_values[class_list[0]],
+                      img_mean_list_class_values[class_list[1]], 'mean pix differences')
+
+    histogram_plotter(img_perimeter_list_class_values[class_list[0]],
+                      img_perimeter_list_class_values[class_list[1]], 'perimeter differences')
 
     histogram_plotter(img_fft_hpf_list_class_values[class_list[0]],
                       img_fft_hpf_list_class_values[class_list[1]], 'fft hpf differences')
@@ -184,10 +189,10 @@ def main():
 
 if __name__ == '__main__':
     input_path = \
-        {'Control': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SingleTp_N_CTR_1',
-         'ALS': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SIngleTp_N_ALS_1'}
+        {'Neurites': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SingleTp_N_CTR_1',
+         'Soma': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SingleTp_S_CTR_1'}
     # '/home/sinadabiri/Dropbox (Gladstone)/Feature_based_classification/ten_crops'
 
-    class_list = ['Control', 'ALS']
+    class_list = ['Neurites', 'Soma']
 
     main()
