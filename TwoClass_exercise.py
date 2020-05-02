@@ -67,11 +67,11 @@ def fft_hpf_differences(input_path, img_list_class):
         # Going back: inverse fft
         dft_ifft = np.fft.ifftshift(dft_shift)
         img_back = cv2.idft(dft_ifft)
-        img_back = cv2.magnitude(img_back[:, :, 0], img_back[:, :, 1])
+        img_back = 20*np.log(cv2.magnitude(img_back[:, :, 0], img_back[:, :, 1]))
         median_img_back = np.median(img_back.ravel())
         img_fft_hpf_list.append([img, median_img_back])
 
-    print('The images and their median pix after fft hpf are: ', img_fft_hpf_list, '\n')
+    # print('The images and their median pix after fft hpf are: ', img_fft_hpf_list, '\n')
     img_fft_hpf_list_class_values = [i[1] for i in img_fft_hpf_list]
 
     return img_fft_hpf_list_class_values
@@ -99,14 +99,46 @@ def fft_power_differences(input_path, img_list_class):
         dft_ifft = np.fft.ifftshift(dft_shift)
 
         img_back = cv2.idft(dft_ifft)
-        img_back = (cv2.magnitude(img_back[:, :, 0], img_back[:, :, 1]))**2
+        img_back = 20*np.log((cv2.magnitude(img_back[:, :, 0], img_back[:, :, 1]))**2)
         median_img_back = np.median(img_back.ravel())
         img_fft_power_list.append([img, median_img_back])
 
-    print('The images and their median pix after fft hpf are: ', img_fft_power_list, '\n')
+    # print('The images and their median pix after fft hpf power are: ', img_fft_power_list, '\n')
     img_fft_power_list_class_values = [i[1] for i in img_fft_power_list]
 
     return img_fft_power_list_class_values
+
+
+def eccentricity_differences(input_path, img_list_class):
+    img_eccentricity_list = []
+    for img in img_list_class:
+        current_img_path = os.path.join(input_path, img)
+        current_img = cv2.imread(current_img_path)
+        imgray = cv2.cvtColor(current_img, cv2.COLOR_BGR2GRAY)
+        ret, thresh = cv2.threshold(imgray, 150, 255, 0)
+        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contour_length = []
+        for c in contours:
+            contour_length.append(len(c))
+
+        # print("the length of contours are: ", contour_length)
+        contour_max_idx = contour_length.index(max(contour_length))
+        print("the index of the max contour is: ", contour_max_idx)
+        cnt = contours[contour_max_idx]
+        # cnt = contours[0]
+        # print("the contours points are: ", contours)
+        threshold_ellipse = cv2.fitEllipse(cnt)
+        (center, axis, orientation) = threshold_ellipse
+        major_axis = max(axis)
+        minor_axis = min(axis)
+        # print("the major and minor axis are: ", major_axis, minor_axis)
+        eccentricity = np.sqrt(1-(minor_axis/major_axis)**2)
+        current_img_eccentricity = np.round(eccentricity, 2)
+        img_eccentricity_list.append([img, current_img_eccentricity])
+
+    # print('The images and their perimeters are: ', img_perimeter_list, '\n')
+    img_eccentricity_list_class_values = [i[1] for i in img_eccentricity_list]
+    return img_eccentricity_list_class_values
 
 
 def histogram_plotter(img_mean_list_class1_values, img_mean_list_class2_values, title):
@@ -119,18 +151,18 @@ def histogram_plotter(img_mean_list_class1_values, img_mean_list_class2_values, 
     """
     plt.figure(title)
     plt.title("134 crops each class")
-    bins_class1 = np.linspace(math.ceil(min(img_mean_list_class1_values)),
-                              math.floor(max(img_mean_list_class1_values)),
-                              30)
-    plt.hist(img_mean_list_class1_values, bins=bins_class1, range=(np.min(img_mean_list_class1_values),
+    # bins_class1 = np.linspace(math.ceil(min(img_mean_list_class1_values)),
+    #                           math.floor(max(img_mean_list_class1_values)),
+    #                           10)
+    plt.hist(img_mean_list_class1_values, bins=30, range=(np.min(img_mean_list_class1_values),
                                                                    np.max(img_mean_list_class1_values)),
-             label='Neurites', alpha=0.7)
-    bins_class2 = np.linspace(math.ceil(min(img_mean_list_class2_values)),
-                              math.floor(max(img_mean_list_class2_values)),
-                              30)
-    plt.hist(img_mean_list_class2_values, bins=bins_class2, range=(np.min(img_mean_list_class2_values),
+             label='Class1', alpha=0.7)
+    # bins_class2 = np.linspace(math.ceil(min(img_mean_list_class2_values)),
+    #                           math.floor(max(img_mean_list_class2_values)),
+    #                           10)
+    plt.hist(img_mean_list_class2_values, bins=30, range=(np.min(img_mean_list_class2_values),
                                                                    np.max(img_mean_list_class2_values)),
-             label='Soma', alpha=0.7)
+             label='Class2', alpha=0.7)
     plt.legend(loc='upper right')
     plt.show()
 
@@ -156,6 +188,7 @@ def main():
     img_perimeter_list_class_values = {}
     img_fft_hpf_list_class_values = {}
     img_fft_power_list_class_values = {}
+    img_eccentricity_list_class_values = {}
 
     for cl in class_list:
         # print("img_list is: ", img_list, '\n')
@@ -170,6 +203,8 @@ def main():
         img_fft_hpf_list_class_values[cl] = fft_hpf_differences(input_path[cl], img_list)
         img_fft_power_list_class_values[cl] = fft_power_differences(input_path[cl], img_list)
 
+        img_eccentricity_list_class_values[cl] = eccentricity_differences(input_path[cl], img_list)
+
     # TODO: csv file is not getting both classes, it overwrites
     # print('The Class mean dictionary is: ', img_mean_list_class_values, '\n')
     # print('The Class perimeter dictionary is: ', img_perimeter_list_class_values, '\n')
@@ -180,19 +215,22 @@ def main():
     histogram_plotter(img_perimeter_list_class_values[class_list[0]],
                       img_perimeter_list_class_values[class_list[1]], 'perimeter differences')
 
-    histogram_plotter(img_fft_hpf_list_class_values[class_list[0]],
-                      img_fft_hpf_list_class_values[class_list[1]], 'fft hpf differences')
+    # histogram_plotter(img_fft_hpf_list_class_values[class_list[0]],
+    #                   img_fft_hpf_list_class_values[class_list[1]], 'fft hpf differences')
+    #
+    # histogram_plotter(img_fft_power_list_class_values[class_list[0]],
+    #                   img_fft_power_list_class_values[class_list[1]], 'fft hpf power differences')
 
-    histogram_plotter(img_fft_power_list_class_values[class_list[0]],
-                      img_fft_power_list_class_values[class_list[1]], 'fft hpf power differences')
+    histogram_plotter(img_eccentricity_list_class_values[class_list[0]],
+                      img_eccentricity_list_class_values[class_list[1]], 'Eccentricity differences')
 
 
 if __name__ == '__main__':
     input_path = \
-        {'Neurites': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SingleTp_N_CTR_1',
-         'Soma': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SingleTp_S_CTR_1'}
+        {'Class1': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SingleTp_S_CTR_1',
+         'Class2': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SingleTp_S_ALS_1'}
     # '/home/sinadabiri/Dropbox (Gladstone)/Feature_based_classification/ten_crops'
 
-    class_list = ['Neurites', 'Soma']
+    class_list = ['Class1', 'Class2']
 
     main()
