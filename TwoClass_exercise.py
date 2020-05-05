@@ -114,7 +114,17 @@ def eccentricity_differences(input_path, img_list_class):
     for img in img_list_class:
         current_img_path = os.path.join(input_path, img)
         current_img = cv2.imread(current_img_path)
-        imgray = cv2.cvtColor(current_img, cv2.COLOR_BGR2GRAY)
+        current_img_normalized = (current_img - current_img.min()) / (current_img.max() - current_img.min())
+        current_img_normalized_mean = current_img_normalized.mean()
+        current_img_normalized_std = current_img_normalized.std()
+        mean_correction_factor = 0.25 - current_img_normalized_mean
+        stdDev_correction_factor = 0.125 / current_img_normalized_std
+        current_img_standardized = (current_img_normalized - mean_correction_factor) * stdDev_correction_factor
+        current_img_standardized_corrected = current_img_standardized + (0.25 - current_img_standardized.mean())
+        current_img_standardized_clipped = current_img_standardized_corrected.clip(0.02, 0.9)
+        current_img_standardized_clipped_rescaled = np.array(current_img_standardized_clipped * pow(2,8), dtype=np.uint8)
+
+        imgray = cv2.cvtColor(current_img_standardized_clipped_rescaled, cv2.COLOR_BGR2GRAY)
         ret, thresh = cv2.threshold(imgray, 150, 255, 0)
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         contour_length = []
@@ -123,7 +133,7 @@ def eccentricity_differences(input_path, img_list_class):
 
         # print("the length of contours are: ", contour_length)
         contour_max_idx = contour_length.index(max(contour_length))
-        print("the index of the max contour is: ", contour_max_idx)
+        # print("the index of the max contour is: ", contour_max_idx)
         cnt = contours[contour_max_idx]
         # cnt = contours[0]
         # print("the contours points are: ", contours)
@@ -136,7 +146,7 @@ def eccentricity_differences(input_path, img_list_class):
         current_img_eccentricity = np.round(eccentricity, 2)
         img_eccentricity_list.append([img, current_img_eccentricity])
 
-    # print('The images and their perimeters are: ', img_perimeter_list, '\n')
+    print('The images and their Eccentricities are: ', img_eccentricity_list, '\n')
     img_eccentricity_list_class_values = [i[1] for i in img_eccentricity_list]
     return img_eccentricity_list_class_values
 
