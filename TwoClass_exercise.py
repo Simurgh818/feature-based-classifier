@@ -6,6 +6,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
+
 def mean_pix_intensity(input_path, img_list_class):
     """
     This function calculates the mean pixel intensity.
@@ -151,6 +152,20 @@ def eccentricity_differences(input_path, img_list_class):
     return img_eccentricity_list_class_values
 
 
+def mean_circle_pix_intensity(input_path, img_list_class):
+    img_mean_list = []
+    blank_img = np.zeros((300, 300, 3), dtype=np.uint8)
+    circle_mask = cv2.circle(blank_img, (150, 150), 25, (1, 1, 1), -1)
+
+    for img in img_list_class:
+        current_img_path = os.path.join(input_path, img)
+        current_img = cv2.imread(current_img_path)
+        current_img_filtered = current_img*circle_mask
+        current_img_filtered_mean = np.round(np.mean(current_img_filtered), 2)
+        img_mean_list.append(current_img_filtered_mean)
+    return img_mean_list
+
+
 def histogram_plotter(img_mean_list_class1_values, img_mean_list_class2_values, title):
     """
 
@@ -199,6 +214,7 @@ def main():
     img_fft_hpf_list_class_values = {}
     img_fft_power_list_class_values = {}
     img_eccentricity_list_class_values = {}
+    img_circle_mean_list_class_values = {}
 
     for cl in class_list:
         # print("img_list is: ", img_list, '\n')
@@ -214,6 +230,9 @@ def main():
         img_fft_power_list_class_values[cl] = fft_power_differences(input_path[cl], img_list)
 
         img_eccentricity_list_class_values[cl] = eccentricity_differences(input_path[cl], img_list)
+        img_circle_mean_list_class_values[cl] = mean_circle_pix_intensity(input_path[cl], img_list)
+
+
 
     # TODO: csv file is not getting both classes, it overwrites
     # print('The Class mean dictionary is: ', img_mean_list_class_values, '\n')
@@ -233,12 +252,14 @@ def main():
 
     histogram_plotter(img_eccentricity_list_class_values[class_list[0]],
                       img_eccentricity_list_class_values[class_list[1]], 'Eccentricity differences')
+    histogram_plotter(img_circle_mean_list_class_values[class_list[0]],
+                      img_circle_mean_list_class_values[class_list[1]], 'mean circle pix differences')
 
 
 if __name__ == '__main__':
     input_path = \
         {'Class1': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SingleTp_S_CTR_1',
-         'Class2': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SingleTp_S_ALS_1'}
+         'Class2': 'C:\\Users\\sinad\\Dropbox (Gladstone)\\Feature_based_classification\\FIJI_SingleTp_N_CTR_1'}
     # '/home/sinadabiri/Dropbox (Gladstone)/Feature_based_classification/ten_crops'
 
     class_list = ['Class1', 'Class2']
