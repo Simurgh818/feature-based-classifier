@@ -4,7 +4,21 @@ import math
 import pandas
 import numpy as np
 from matplotlib import pyplot as plt
+import scipy
 
+from sklearn.linear_model import LogisticRegression
+import seaborn as sns
+from sklearn import metrics
+
+
+def img_reader(input_path, img_list_class):
+    img_value_list = []
+
+    for img in img_list_class:
+        current_img_path = os.path.join(input_path, img)
+        current_img = cv2.imread(current_img_path)
+        img_value_list.append(current_img)
+    return img_value_list
 
 
 def mean_pix_intensity(input_path, img_list_class):
@@ -147,7 +161,7 @@ def eccentricity_differences(input_path, img_list_class):
         current_img_eccentricity = np.round(eccentricity, 2)
         img_eccentricity_list.append([img, current_img_eccentricity])
 
-    print('The images and their Eccentricities are: ', img_eccentricity_list, '\n')
+    # print('The images and their Eccentricities are: ', img_eccentricity_list, '\n')
     img_eccentricity_list_class_values = [i[1] for i in img_eccentricity_list]
     return img_eccentricity_list_class_values
 
@@ -163,6 +177,20 @@ def mean_circle_pix_intensity(input_path, img_list_class):
         current_img_filtered = current_img*circle_mask
         current_img_filtered_mean = np.round(np.mean(current_img_filtered), 2)
         img_mean_list.append(current_img_filtered_mean)
+    return img_mean_list
+
+
+# Doing Logistic Regression on the circle filtered image
+def circle_pix_intensity(input_path, img_list_class):
+    img_mean_list = []
+    blank_img = np.zeros((300, 300), dtype=np.uint8)
+    circle_mask = cv2.circle(blank_img, (150,150), 25, (1,1,1), -1)
+
+    for img in img_list_class:
+        current_img_path = os.path.join(input_path, img)
+        current_img = cv2.imread(current_img_path, 0)
+        current_img_filtered = current_img*circle_mask
+        img_mean_list.append(current_img_filtered.ravel())
     return img_mean_list
 
 
@@ -209,12 +237,14 @@ def csv_file_updater(input_path, img_list, img_mean_list):
 
 
 def main():
+    img_values = {}
     img_mean_list_class_values = {}
     img_perimeter_list_class_values = {}
     img_fft_hpf_list_class_values = {}
     img_fft_power_list_class_values = {}
     img_eccentricity_list_class_values = {}
     img_circle_mean_list_class_values = {}
+    img_circle_list_class_values = {}
 
     for cl in class_list:
         # print("img_list is: ", img_list, '\n')
@@ -222,6 +252,7 @@ def main():
         img_list = os.listdir(input_path[cl])
         # img_list_class = [fn for fn in img_list if cl in fn]
         # print("img_list_class: ", img_list_class)
+        img_values[cl] = img_reader(input_path[cl], img_list)
         img_mean_list_class_values[cl] = mean_pix_intensity(input_path[cl], img_list)
         # csv_file_updater(input_path[cl], img_list, img_mean_list_class_values[cl])
         img_perimeter_list_class_values[cl] = perimeter_differences(input_path[cl], img_list)
@@ -231,8 +262,47 @@ def main():
 
         img_eccentricity_list_class_values[cl] = eccentricity_differences(input_path[cl], img_list)
         img_circle_mean_list_class_values[cl] = mean_circle_pix_intensity(input_path[cl], img_list)
+        img_circle_list_class_values[cl] = circle_pix_intensity(input_path[cl], img_list)
 
+    print(np.shape(img_circle_list_class_values[class_list[0]]),
+          np.shape(img_circle_list_class_values[class_list[1]][0:105]))
+    class1_labels = np.zeros(105)
+    print(class1_labels.shape)
+    class2_labels = np.ones(105)
+    print(class2_labels.shape)
+    img_circle_mean_list_combined = np.append(img_circle_list_class_values[class_list[0]],
+                                              img_circle_list_class_values[class_list[1]][0:105], axis=0)
+    print("img_circle_mean_list_combined shape: ", img_circle_mean_list_combined.shape)
+    # img_circle_mean_list_combined_reshaped = img_circle_mean_list_combined.reshape(-1, 1)
+    # print("img_circle_mean_list_combined_reshaped", img_circle_mean_list_combined_reshaped.shape)
+    img_label_list_combined = np.append(class1_labels, class2_labels)
+    img_label_list_combined_reshaped = img_label_list_combined.reshape(-1, 1)
+    print(img_label_list_combined_reshaped.shape)
 
+    from sklearn.model_selection import train_test_split
+    x_train_whole, x_test_whole, y_train_whole, y_test_whole = train_test_split(img_circle_mean_list_combined,
+                                                                                img_label_list_combined, test_size=0.14,
+                                                                                random_state=0)
+    print(y_train_whole.shape)
+    # Make an instance of the model
+    logisticRegr_whole = LogisticRegression(max_iter=1000)
+    # Training
+    logisticRegr_whole.fit(x_train_whole, y_train_whole)
+    logisticRegr_whole.predict(x_test_whole[0:29])
+    # prediction for the entire dataset
+    predictions_whole = logisticRegr_whole.predict(x_test_whole)
+    # using accuracy as a measure of performance
+    score_whole = logisticRegr_whole.score(x_test_whole, y_test_whole)
+    print(score_whole)
+    # confusion matrix for the whole circle comparison
+    cm_whole = metrics.confusion_matrix(y_test_whole.reshape(-1, 1), predictions_whole)
+    plt.figure(figsize=(5,5))
+    sns.heatmap(cm_whole, annot=True, fmt=".1f", linewidths=.5, square=True, cmap='Blues_r');
+    plt.ylabel('Actual Label');
+    plt.xlabel('Predicted Label');
+    all_sample_title_whole = 'Accuracy Score: {0}'.format(score_whole)
+    plt.title(all_sample_title_whole, size=15);
+    plt.savefig('mean_pix_circle_feature_confusion_matrix_whole.png')
 
     # TODO: csv file is not getting both classes, it overwrites
     # print('The Class mean dictionary is: ', img_mean_list_class_values, '\n')
