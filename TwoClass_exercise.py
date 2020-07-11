@@ -1,7 +1,7 @@
 import os
 import cv2
 import math
-import pandas
+import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 import scipy
@@ -222,18 +222,21 @@ def histogram_plotter(img_mean_list_class1_values, img_mean_list_class2_values, 
     return
 
 
-def csv_file_updater(input_path, img_list, img_mean_list):
+def csv_file_updater(input_path, cl, img_mean_list):
     csv_file_path = '\\'.join(str(input_path).split('\\')[0:-1])
-    print("the csv file path: ", csv_file_path)
+    print("the csv file path: ", input_path)
     csv_file = os.path.join(csv_file_path, 'classifier_output.csv')
     # print("the img_mean_list is: ", img_mean_list)
-    img_mean_list_file_names = [i for i in img_list]
-    img_mean_list_values = [j for j in img_mean_list]
-    df = pandas.DataFrame(data={"Folder": input_path, "FileNames": img_mean_list_file_names,
-                                "MeanPixIntensities": img_mean_list_values})
-    df.to_csv(csv_file, sep=',', index=False)
 
-    return
+    img_mean_list_file_names = os.listdir(input_path)
+    #     print("img_mean_list_file_names is: ", img_mean_list_file_names)
+    print("the img_mean_list: ", img_mean_list)
+    img_mean_list_values = [fn for fn in img_mean_list]
+    #     print("img_mean_list_values is: ", img_mean_list_values)
+    df = pd.DataFrame(data={"Class": cl, "Folder": input_path, "FileNames":
+        img_mean_list_file_names, "Mean circle pix intensity":
+                                img_mean_list_values})
+    return df, csv_file
 
 
 def main():
@@ -263,6 +266,13 @@ def main():
         img_eccentricity_list_class_values[cl] = eccentricity_differences(input_path[cl], img_list)
         img_circle_mean_list_class_values[cl] = mean_circle_pix_intensity(input_path[cl], img_list)
         img_circle_list_class_values[cl] = circle_pix_intensity(input_path[cl], img_list)
+        # img_mean_list_class = img_mean_list_class_values[cl]
+        #     print("img_mean_list_class is: ", img_mean_list_class)
+        df, csv_file = csv_file_updater(input_path[cl], cl, img_mean_list_class_values[cl])
+        if cl == 'class1':
+            df.to_csv(csv_file, sep=',', index=False, mode='a', header=True)
+        else:
+            df.to_csv(csv_file, sep=',', index=False, mode='a', header=False)
 
     print(np.shape(img_circle_list_class_values[class_list[0]]),
           np.shape(img_circle_list_class_values[class_list[1]][0:105]))
@@ -296,12 +306,12 @@ def main():
     print(score_whole)
     # confusion matrix for the whole circle comparison
     cm_whole = metrics.confusion_matrix(y_test_whole.reshape(-1, 1), predictions_whole)
-    plt.figure(figsize=(5,5))
-    sns.heatmap(cm_whole, annot=True, fmt=".1f", linewidths=.5, square=True, cmap='Blues_r');
-    plt.ylabel('Actual Label');
-    plt.xlabel('Predicted Label');
+    plt.figure(figsize=(5, 5))
+    sns.heatmap(cm_whole, annot=True, fmt=".1f", linewidths=.5, square=True, cmap='Blues_r')
+    plt.ylabel('Actual Label')
+    plt.xlabel('Predicted Label')
     all_sample_title_whole = 'Accuracy Score: {0}'.format(score_whole)
-    plt.title(all_sample_title_whole, size=15);
+    plt.title(all_sample_title_whole, size=15)
     plt.savefig('mean_pix_circle_feature_confusion_matrix_whole.png')
 
     # TODO: csv file is not getting both classes, it overwrites
