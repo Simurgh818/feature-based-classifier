@@ -210,7 +210,7 @@ def histogram_plotter(img_mean_list_class1_values, img_mean_list_class2_values, 
     return
 
 
-def csv_file_updater(input_path, cl, img_mean_list):
+def csv_file_updater(input_path, img_mean_list):
     csv_file_path = '\\'.join(str(input_path).split('\\')[0:-1])
     print("the csv file path: ", input_path)
     csv_file = os.path.join(csv_file_path, 'classifier_output.csv')
@@ -218,10 +218,9 @@ def csv_file_updater(input_path, cl, img_mean_list):
     img_mean_list_file_names = os.listdir(input_path)
     img_mean_list_values = [fn for fn in img_mean_list]
 
-    df = pd.DataFrame(data={"Class": cl, "Folder": input_path, "FileNames":
-         img_mean_list_file_names, "Mean circle pix intensity":
-         img_mean_list_values})
-    return df, csv_file
+    # df = pd.DataFrame(data={"FileNames": img_mean_list_file_names,
+    #                         "Mean circle pix intensity": img_mean_list_values})
+    return csv_file
 
 
 def main():
@@ -253,11 +252,61 @@ def main():
         img_circle_list_class_values[cl] = circle_pix_intensity(input_path[cl], img_list)
         # img_mean_list_class = img_mean_list_class_values[cl]
         #     print("img_mean_list_class is: ", img_mean_list_class)
-        # df, csv_file = csv_file_updater(input_path[cl], cl, img_mean_list_class_values[cl])
+        # df, csv_file = csv_file_updater(input_path[cl], img_mean_list_class_values[cl])
         # if cl == 'class1':
         #     df.to_csv(csv_file, sep=',', index=False, mode='a', header=True)
         # else:
         #     df.to_csv(csv_file, sep=',', index=False, mode='a', header=False)
+    # -----------------------------------------------------------------------------
+
+    cl = class_list[0]
+    data_index = os.listdir(input_path[cl])
+    img_mean_list_values = mean_circle_pix_intensity(input_path[cl], data_index)
+    df = pd.DataFrame(data={"FileNames": data_index,
+                            "Mean circle pix intensity": img_mean_list_values})
+    img_ecc_list_values = eccentricity_differences(input_path[cl], data_index)
+    # print(img_mean_list_values)
+    df_ecc = pd.DataFrame(data={"FileNames": data_index,
+                                "Eccentricity": img_ecc_list_values})
+    img_hpf_list_values = fft_hpf_differences(input_path[cl], data_index)
+    # print(img_hpf_list_values)
+    df_hpf = pd.DataFrame(data={"FileNames": data_index,
+                                "FFT HPF": img_hpf_list_values})
+
+    # -----------------------------------------------------------------------------
+    cl2 = class_list[1]
+    print(cl2)
+    data_index2 = os.listdir(input_path[cl2])
+    img_mean_list_values2 = mean_circle_pix_intensity(input_path[cl2], data_index2)
+    # print(img_mean_list_values)
+    df2 = pd.DataFrame(data={"FileNames": data_index2[0:105],
+                             "Mean circle pix intensity": img_mean_list_values2[0:105]})
+    df_complete = df.append(df2)
+    df_complete.set_index("FileNames", inplace=True)
+    # print(df_complete)
+    df_complete_normalized = (df_complete - df_complete.min()) / \
+                             (df_complete.max() - df_complete.min())
+    # print(df_complete_normalized)
+    img_ecc_list_values2 = eccentricity_differences(input_path[cl2], data_index2[0:105])
+    # print(img_mean_list_values)
+    df2_ecc = pd.DataFrame(data={"FileNames": data_index2[0:105],
+                                 "Eccentricity": img_ecc_list_values2[0:105]})
+    df_ecc_complete = df_ecc.append(df2_ecc)
+    df_ecc_complete.set_index("FileNames", inplace=True)
+    df_ecc_complete_combo = df_complete_normalized.merge(df_ecc_complete,on=['FileNames'])
+    # print(df_ecc_complete_combo)
+    img_hpf_list_values2 = fft_hpf_differences(input_path[cl2], data_index2[0:105])
+    # print(img_mean_list_values)
+    df2_hpf = pd.DataFrame(data={"FileNames": data_index2[0:105],
+                                 "FFT HPF": img_hpf_list_values2[0:105]})
+
+    df_hpf_complete = df_hpf.append(df2_hpf)
+    df_hpf_complete.set_index("FileNames",inplace=True)
+    df_hpf_complete_normalized = (df_hpf_complete - df_hpf_complete.min()) /\
+                                 (df_hpf_complete.max() - df_hpf_complete.min())
+    df_hpf_complete_combo = df_ecc_complete_combo.merge(df_hpf_complete_normalized,on=['FileNames'])
+    df_hpf_complete_combo = np.round(df_hpf_complete_combo, 2)
+    print(df_hpf_complete_combo)
 
     class1_labels = np.zeros(105)
     class2_labels = np.ones(105)
@@ -265,38 +314,56 @@ def main():
                                               img_circle_list_class_values[class_list[1]][0:105], axis=0)
     img_label_list_combined = np.append(class1_labels, class2_labels)
     from sklearn.model_selection import train_test_split
-    x_train_whole, x_test_whole, y_train_whole, y_test_whole = train_test_split(img_circle_mean_list_combined,
+    x_train_whole, x_test_whole, y_train_whole, y_test_whole = train_test_split(df_hpf_complete_combo,
                                                                                 img_label_list_combined, test_size=0.14,
                                                                                 random_state=0)
-    logisticRegr_whole = LogisticRegression(max_iter=1000)
-    # Training
-    logisticRegr_whole.fit(x_train_whole, y_train_whole)
-    logisticRegr_whole.predict(x_test_whole[0:29])
+    logisticRegr_whole = LogisticRegression()
+    # Training max_iter=1000
+    clf = logisticRegr_whole.fit(x_train_whole, y_train_whole)
+    # coef_ corresponds to the weights of each feature
+    print("The coef_ for circle, ecc. and fft-hpf features are: ", np.round(clf.coef_, 2))
+    std_circle = np.std(x_train_whole['Mean circle pix intensity'], 0)
+    std_ecc = np.std(x_train_whole['Eccentricity'], 0)
+    std_hpf = np.std(x_train_whole['FFT HPF'], 0)
+    print("The standard deviation of circle feature, eccen., and fft-hpf are: ",
+          np.round(std_circle, 2), np.round(std_ecc, 2), np.round(std_hpf, 2))
+    weighted_circle = std_circle*clf.coef_[0][0]
+    weighted_ecc = std_ecc*clf.coef_[0][1]
+    weighted_hpf = std_hpf*clf.coef_[0][2]
+    print("The normalized coef are: ", [np.round(weighted_circle,2), np.round(weighted_ecc,2),
+                                        np.round(weighted_hpf,2)])
+
+    logisticRegr_whole.predict(x_test_whole)
     # prediction for the entire dataset
     predictions_whole = logisticRegr_whole.predict(x_test_whole)
     # using accuracy as a measure of performance
-    score_whole = logisticRegr_whole.score(x_test_whole, y_test_whole)
+    score_whole_test = logisticRegr_whole.score(x_test_whole, y_test_whole)
+    print("test score is: ", score_whole_test)
+    score_whole_train = logisticRegr_whole.score(x_train_whole, y_train_whole)
+    print("test score is: ", score_whole_train)
+
     # confusion matrix for the whole circle comparison
     cm_whole = metrics.confusion_matrix(y_test_whole.reshape(-1, 1), predictions_whole)
     plt.figure(figsize=(5, 5))
     sns.heatmap(cm_whole, annot=True, fmt=".1f", linewidths=.5, square=True, cmap='Blues_r')
     plt.ylabel('Actual Label')
     plt.xlabel('Predicted Label')
-    all_sample_title_whole = 'Accuracy Score: {0}'.format(score_whole)
+    all_sample_title_whole = 'Accuracy Score: {0}'.format(score_whole_test)
     plt.title(all_sample_title_whole, size=15)
     plt.savefig('mean_pix_circle_feature_confusion_matrix_whole.png')
+    plt.show()
 
     # TODO: csv file is not getting both classes, it overwrites
-    histogram_plotter(img_mean_list_class_values[class_list[0]],
-                      img_mean_list_class_values[class_list[1]], 'mean pix differences')
+    # histogram_plotter(img_mean_list_class_values[class_list[0]],
+    #                   img_mean_list_class_values[class_list[1]], 'mean pix differences')
+    #
+    # histogram_plotter(img_perimeter_list_class_values[class_list[0]],
+    #                   img_perimeter_list_class_values[class_list[1]], 'perimeter differences')
 
-    histogram_plotter(img_perimeter_list_class_values[class_list[0]],
-                      img_perimeter_list_class_values[class_list[1]], 'perimeter differences')
-
-    histogram_plotter(img_eccentricity_list_class_values[class_list[0]],
-                      img_eccentricity_list_class_values[class_list[1]], 'Eccentricity differences')
-    histogram_plotter(img_circle_mean_list_class_values[class_list[0]],
-                      img_circle_mean_list_class_values[class_list[1]], 'mean circle pix differences')
+    # histogram_plotter(img_eccentricity_list_class_values[class_list[0]],
+    #                   img_eccentricity_list_class_values[class_list[1]], 'Eccentricity differences')
+    # histogram_plotter(img_circle_mean_list_class_values[class_list[0]],
+    #                   img_circle_mean_list_class_values[class_list[1]], 'mean circle pix differences')
 
 
 if __name__ == '__main__':
